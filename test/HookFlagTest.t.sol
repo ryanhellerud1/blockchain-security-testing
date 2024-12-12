@@ -2,10 +2,20 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
-import "../src/PoolManager.sol";
-import "../src/interfaces/IHooks.sol";
-import "../src/libraries/Hooks.sol";
-import "./mocks/TestERC20.sol";
+import "@uniswap/v4-core/PoolManager.sol";
+import "@uniswap/v4-core/interfaces/IHooks.sol";
+import "@uniswap/v4-core/libraries/Hooks.sol";
+import "@uniswap/v4-core/types/PoolKey.sol";
+import "@uniswap/v4-core/types/Currency.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+contract TestERC20 is ERC20 {
+    constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
+    
+    function mint(address to, uint256 amount) public {
+        _mint(to, amount);
+    }
+}
 
 contract HookFlagTest is Test {
     PoolManager public poolManager;
@@ -24,7 +34,7 @@ contract HookFlagTest is Test {
 
     function setUp() public {
         // Deploy core contracts
-        poolManager = new PoolManager(500000);
+        poolManager = new PoolManager(address(this)); // Using test contract as protocol fee recipient
         
         // Deploy test tokens
         token0 = new TestERC20("Test0", "TST0");
@@ -41,11 +51,11 @@ contract HookFlagTest is Test {
         address hookAddr = address(uint160(0x1234) | (uint160(0xFF) << 152));
         
         PoolKey memory key = PoolKey({
-            token0: address(token0),
-            token1: address(token1),
+            currency0: Currency.wrap(address(token0)),
+            currency1: Currency.wrap(address(token1)),
             fee: 3000,
-            hookAddress: hookAddr,
-            poolManager: address(poolManager)
+            tickSpacing: 60,
+            hooks: IHooks(hookAddr)
         });
 
         // This should fail if hook address validation is working
@@ -62,11 +72,11 @@ contract HookFlagTest is Test {
             address hookAddr = address(uint160(baseAddr) | (uint160(1 << i) << 152));
             
             PoolKey memory key = PoolKey({
-                token0: address(token0),
-                token1: address(token1),
+                currency0: Currency.wrap(address(token0)),
+                currency1: Currency.wrap(address(token1)),
                 fee: 3000,
-                hookAddress: hookAddr,
-                poolManager: address(poolManager)
+                tickSpacing: 60,
+                hooks: IHooks(hookAddr)
             });
 
             // Log the attempt
@@ -87,11 +97,11 @@ contract HookFlagTest is Test {
         HookProxy proxy = new HookProxy();
         
         PoolKey memory key = PoolKey({
-            token0: address(token0),
-            token1: address(token1),
+            currency0: Currency.wrap(address(token0)),
+            currency1: Currency.wrap(address(token1)),
             fee: 3000,
-            hookAddress: address(proxy),
-            poolManager: address(poolManager)
+            tickSpacing: 60,
+            hooks: IHooks(address(proxy))
         });
 
         // Try to initialize with proxy
