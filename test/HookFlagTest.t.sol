@@ -5,6 +5,8 @@ import "forge-std/Test.sol";
 import "@uniswap/v4-core/contracts/PoolManager.sol";
 import "@uniswap/v4-core/contracts/interfaces/IHooks.sol";
 import "@uniswap/v4-core/contracts/libraries/Hooks.sol";
+import "@uniswap/v4-core/contracts/types/PoolKey.sol";
+import "@uniswap/v4-core/contracts/types/Currency.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract TestERC20 is ERC20 {
