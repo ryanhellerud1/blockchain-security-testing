@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@uniswap/v4-core/interfaces/IHooks.sol";
-import "@uniswap/v4-core/interfaces/IPoolManager.sol";
-import "@uniswap/v4-core/types/PoolKey.sol";
-import "@uniswap/v4-core/types/BalanceDelta.sol";
-import "@uniswap/v4-core/types/BeforeSwapDelta.sol";
+import "@uniswap/v4-core/contracts/interfaces/IHooks.sol";
+import "@uniswap/v4-core/contracts/interfaces/IPoolManager.sol";
+import "@uniswap/v4-core/contracts/types/PoolKey.sol";
+import "@uniswap/v4-core/contracts/types/BalanceDelta.sol";
+import "@uniswap/v4-core/contracts/types/BeforeSwapDelta.sol";
 
 // Base hook implementation with all required functions
 abstract contract BaseHook is IHooks {
