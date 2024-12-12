@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import "@uniswap/v4-core/PoolManager.sol";
@@ -112,15 +112,17 @@ contract HookFlagTest is Test {
 
 // Helper contract for testing proxy attacks
 contract HookProxy {
-    address private immutable TARGET_HOOK = address(0x1234 | (uint160(0xFF) << 152));
+    function getTargetHook() internal pure returns (address) {
+        return address(uint160(0x1234) | (uint160(0xFF) << 152));
+    }
     
     fallback() external {
-        // Try to proxy to a hook address with all permissions
+        address target = getTargetHook();
         assembly {
             // Load the entire calldata
             calldatacopy(0, 0, calldatasize())
             // Forward the call
-            let result := call(gas(), TARGET_HOOK, 0, 0, calldatasize(), 0, 0)
+            let result := call(gas(), target, 0, 0, calldatasize(), 0, 0)
             // Return the result
             returndatacopy(0, 0, returndatasize())
             return(0, returndatasize())
