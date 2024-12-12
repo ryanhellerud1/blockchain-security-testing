@@ -1,66 +1,111 @@
-## Foundry
+# Uniswap V4 Hook Security Testing Suite
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+A comprehensive testing suite for identifying potential vulnerabilities in Uniswap V4's hook system. This project aims to help security researchers and developers understand and test the security boundaries of Uniswap V4's hook mechanism.
 
-Foundry consists of:
+## Overview
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+This test suite explores various attack vectors against Uniswap V4's hook system, including:
 
-## Documentation
+- Malicious hook installation
+- State manipulation attempts
+- Reentrancy attacks
+- Fee manipulation
+- Sandwich attacks
 
-https://book.getfoundry.sh/
+## Prerequisites
 
-## Usage
+- [Foundry](https://book.getfoundry.sh/getting-started/installation)
+- Solidity ^0.8.24
+- Git
 
-### Build
+## Installation
 
-```shell
-$ forge build
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/uniswap-v4-hook-testing
+cd uniswap-v4-hook-testing
 ```
 
-### Test
-
-```shell
-$ forge test
+2. Install dependencies:
+```bash
+forge install
 ```
 
-### Format
+## Running Tests
 
-```shell
-$ forge fmt
+Run all tests:
+```bash
+forge test -vvv
 ```
 
-### Gas Snapshots
-
-```shell
-$ forge snapshot
+Run specific test contract:
+```bash
+forge test --match-contract HookVulnerabilityTest -vvv
 ```
 
-### Anvil
+## Test Cases
 
-```shell
-$ anvil
+### 1. Malicious Hook Installation
+Tests if hooks can be installed with unauthorized permissions.
+
+### 2. State Manipulation
+Verifies that hooks cannot manipulate pool state outside of allowed operations.
+
+### 3. Reentrancy Protection
+Tests Uniswap V4's protection against reentrancy attacks through hooks.
+
+### 4. Fee Manipulation
+Ensures hooks cannot extract excessive fees from users.
+
+### 5. Sandwich Attack Protection
+Tests protection against sandwich attacks orchestrated through hooks.
+
+## Project Structure
+
+```
+├── src/
+├── test/
+│   ├── HookVulnerabilityTest.t.sol   # Main test suite
+│   └── mocks/
+│       └── MaliciousHooks.sol        # Mock malicious hooks
+├── lib/
+│   └── ...                           # Dependencies
+└── README.md
 ```
 
-### Deploy
+## Security Findings
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
+The test suite has identified several key security properties of Uniswap V4's hook system:
 
-### Cast
+1. Hook Address Validation
+   - Hooks must be deployed to addresses with specific flags in their least significant bits
+   - These flags determine which hooks can be called
+   - The flags are validated during pool initialization and hook calls
 
-```shell
-$ cast <subcommand>
-```
+2. Reentrancy Protection
+   - Built-in reentrancy protection via the `ManagerLocked` error
+   - Attempts to reenter the pool manager during hook callbacks are blocked
 
-### Help
+3. State Manipulation Protection
+   - Hooks can't directly manipulate pool state
+   - State changes must go through proper pool manager functions
 
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+4. Fee Manipulation Protection
+   - Hooks can't arbitrarily drain user funds through fee manipulation
+   - Fee calculations are controlled by the pool manager
+
+5. Sandwich Attack Protection
+   - While hooks can observe trades, they can't directly manipulate prices
+   - Price changes must go through proper pool manager functions
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Disclaimer
+
+This code is provided for educational and testing purposes only. Do not use in production without proper security review.

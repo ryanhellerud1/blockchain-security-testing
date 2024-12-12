@@ -12,3 +12,27 @@ docs/
 
 # Dotenv file
 .env
+
+# Node modules
+node_modules/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Coverage reports
+coverage/
+lcov.info
+
+# Foundry
+forge-cache/
+forge-out/
+
+# Local development files
+local/
