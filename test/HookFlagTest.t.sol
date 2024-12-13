@@ -24,7 +24,7 @@ contract HookFlagTest is Test {
     
     function setUp() public {
         // Deploy core contracts
-        poolManager = new PoolManager(address(this)); // Using test contract as protocol fee recipient
+        poolManager = new PoolManager(100000); // Using test contract as protocol fee recipient
         
         // Deploy test tokens
         token0 = new TestERC20("Token0", "TK0");
@@ -50,7 +50,7 @@ contract HookFlagTest is Test {
 
         // This should fail if hook address validation is working
         vm.expectRevert();
-        poolManager.initialize(key, uint160(1 << 96));
+        poolManager.initialize(key, uint160(1 << 96), "");
     }
 
     function testFlagBitFlipping() public {
@@ -70,7 +70,7 @@ contract HookFlagTest is Test {
                 hooks: IHooks(hookAddr)
             });
 
-            try poolManager.initialize(key, uint160(1 << 96)) {
+            try poolManager.initialize(key, uint160(1 << 96), "") {
                 console.log("Flag accepted:", i);
             } catch {
                 console.log("Flag rejected:", i);
@@ -92,7 +92,7 @@ contract HookFlagTest is Test {
 
         // This should fail if hook address validation is working
         vm.expectRevert();
-        poolManager.initialize(key, uint160(1 << 96));
+        poolManager.initialize(key, uint160(1 << 96), "");
     }
 }
 

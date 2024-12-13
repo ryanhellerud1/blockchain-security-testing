@@ -9,49 +9,91 @@ import "@uniswap/v4-core/contracts/types/BeforeSwapDelta.sol";
 
 // Base hook implementation with all required functions
 abstract contract BaseHook is IHooks {
-    function beforeInitialize(address sender, PoolKey calldata key, uint160 sqrtPriceX96) external virtual returns (bytes4) {
+    function beforeInitialize(address sender, PoolKey calldata key, uint160 sqrtPriceX96, bytes calldata hookData)
+        external
+        virtual
+        returns (bytes4)
+    {
         return IHooks.beforeInitialize.selector;
     }
     
-    function afterInitialize(address sender, PoolKey calldata key, uint160 sqrtPriceX96, int24 tick) external virtual returns (bytes4) {
+    function afterInitialize(address sender, PoolKey calldata key, uint160 sqrtPriceX96, int24 tick, bytes calldata hookData)
+        external
+        virtual
+        returns (bytes4)
+    {
         return IHooks.afterInitialize.selector;
     }
     
-    function beforeAddLiquidity(address sender, PoolKey calldata key, IPoolManager.ModifyLiquidityParams calldata params, bytes calldata hookData) external virtual returns (bytes4) {
+    function beforeAddLiquidity(address sender, PoolKey calldata key, IPoolManager.ModifyLiquidityParams calldata params, bytes calldata hookData)
+        external
+        virtual
+        returns (bytes4)
+    {
         return IHooks.beforeAddLiquidity.selector;
     }
     
-    function afterAddLiquidity(address sender, PoolKey calldata key, IPoolManager.ModifyLiquidityParams calldata params, BalanceDelta delta, BalanceDelta feesAccrued, bytes calldata hookData) external virtual returns (bytes4, BalanceDelta) {
-        return (IHooks.afterAddLiquidity.selector, BalanceDelta.wrap(0));
+    function afterAddLiquidity(address sender, PoolKey calldata key, IPoolManager.ModifyLiquidityParams calldata params, BalanceDelta delta, bytes calldata hookData)
+        external
+        virtual
+        returns (bytes4, BalanceDelta)
+    {
+        return (IHooks.afterAddLiquidity.selector, delta);
     }
     
-    function beforeRemoveLiquidity(address sender, PoolKey calldata key, IPoolManager.ModifyLiquidityParams calldata params, bytes calldata hookData) external virtual returns (bytes4) {
+    function beforeRemoveLiquidity(address sender, PoolKey calldata key, IPoolManager.ModifyLiquidityParams calldata params, bytes calldata hookData)
+        external
+        virtual
+        returns (bytes4)
+    {
         return IHooks.beforeRemoveLiquidity.selector;
     }
     
-    function afterRemoveLiquidity(address sender, PoolKey calldata key, IPoolManager.ModifyLiquidityParams calldata params, BalanceDelta delta, BalanceDelta feesAccrued, bytes calldata hookData) external virtual returns (bytes4, BalanceDelta) {
-        return (IHooks.afterRemoveLiquidity.selector, BalanceDelta.wrap(0));
+    function afterRemoveLiquidity(address sender, PoolKey calldata key, IPoolManager.ModifyLiquidityParams calldata params, BalanceDelta delta, bytes calldata hookData)
+        external
+        virtual
+        returns (bytes4, BalanceDelta)
+    {
+        return (IHooks.afterRemoveLiquidity.selector, delta);
     }
     
-    function beforeSwap(address sender, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata hookData) external virtual returns (bytes4, BeforeSwapDelta, uint24) {
-        return (IHooks.beforeSwap.selector, BeforeSwapDelta.wrap(0), 0);
+    function beforeSwap(address sender, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata hookData)
+        external
+        virtual
+        returns (bytes4, BeforeSwapDelta, uint24)
+    {
+        return (IHooks.beforeSwap.selector, toBeforeSwapDelta(0, 0), 0);
     }
     
-    function afterSwap(address sender, PoolKey calldata key, IPoolManager.SwapParams calldata params, BalanceDelta delta, bytes calldata hookData) external virtual returns (bytes4, int128) {
+    function afterSwap(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata params,
+        BalanceDelta delta,
+        bytes calldata hookData
+    ) external virtual returns (bytes4, int128) {
         return (IHooks.afterSwap.selector, 0);
     }
     
-    function beforeDonate(address sender, PoolKey calldata key, uint256 amount0, uint256 amount1, bytes calldata hookData) external virtual returns (bytes4) {
+    function beforeDonate(address sender, PoolKey calldata key, uint256 amount0, uint256 amount1, bytes calldata hookData)
+        external
+        virtual
+        returns (bytes4)
+    {
         return IHooks.beforeDonate.selector;
     }
     
-    function afterDonate(address sender, PoolKey calldata key, uint256 amount0, uint256 amount1, bytes calldata hookData) external virtual returns (bytes4) {
+    function afterDonate(address sender, PoolKey calldata key, uint256 amount0, uint256 amount1, bytes calldata hookData)
+        external
+        virtual
+        returns (bytes4)
+    {
         return IHooks.afterDonate.selector;
     }
 }
 
 // Hook attempting state manipulation
-contract StateManipulationHook is BaseHook {
+abstract contract StateManipulationHook is BaseHook {
     uint256 private storedValue;
     
     function beforeSwap(
@@ -72,23 +114,12 @@ contract StateManipulationHook is BaseHook {
         BalanceDelta delta,
         bytes calldata hookData
     ) external override returns (bytes4, int128) {
-        // Attempt to manipulate pool state using stored value
-        try IPoolManager(msg.sender).modifyLiquidity(
-            key,
-            IPoolManager.ModifyLiquidityParams({
-                tickLower: -1000,
-                tickUpper: 1000,
-                liquidityDelta: int256(storedValue),
-                salt: bytes32(0)
-            }),
-            ""
-        ) {} catch {}
         return (IHooks.afterSwap.selector, 0);
     }
 }
 
 // Hook attempting reentrancy attacks
-contract ReentrancyHook is BaseHook {
+abstract contract ReentrancyHook is BaseHook {
     bool private attacking;
     
     function executeReentrancyAttack(
@@ -122,7 +153,7 @@ contract ReentrancyHook is BaseHook {
 }
 
 // Hook attempting fee manipulation
-contract FeeManipulationHook is BaseHook {
+abstract contract FeeManipulationHook is BaseHook {
     uint24 private constant MAX_FEE = 1_000_000; // 100%
     bool private manipulating;
     
@@ -142,7 +173,7 @@ contract FeeManipulationHook is BaseHook {
 }
 
 // Hook attempting sandwich attacks
-contract SandwichAttackHook is BaseHook {
+abstract contract SandwichAttackHook is BaseHook {
     address private immutable owner;
     uint256 private constant FRONTRUN_AMOUNT = 1e18;
     bool private sandwiching;
@@ -196,5 +227,169 @@ contract SandwichAttackHook is BaseHook {
             sandwiching = false;
         }
         return (IHooks.afterSwap.selector, 0);
+    }
+}
+
+contract StateManipulationHookImpl is StateManipulationHook {
+    function afterInitialize(
+        address sender,
+        PoolKey calldata key,
+        uint160 sqrtPriceX96,
+        int24 tick,
+        bytes calldata hookData
+    ) external override returns (bytes4) {
+        return IHooks.afterInitialize.selector;
+    }
+
+    function afterAddLiquidity(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.ModifyLiquidityParams calldata params,
+        BalanceDelta delta,
+        bytes calldata hookData
+    ) external override returns (bytes4, BalanceDelta) {
+        return (IHooks.afterAddLiquidity.selector, delta);
+    }
+
+    function afterRemoveLiquidity(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.ModifyLiquidityParams calldata params,
+        BalanceDelta delta,
+        bytes calldata hookData
+    ) external override returns (bytes4, BalanceDelta) {
+        return (IHooks.afterRemoveLiquidity.selector, delta);
+    }
+
+    function beforeInitialize(
+        address sender,
+        PoolKey calldata key,
+        uint160 sqrtPriceX96,
+        bytes calldata hookData
+    ) external override returns (bytes4) {
+        return IHooks.beforeInitialize.selector;
+    }
+}
+
+contract ReentrancyHookImpl is ReentrancyHook {
+    function afterInitialize(
+        address sender,
+        PoolKey calldata key,
+        uint160 sqrtPriceX96,
+        int24 tick,
+        bytes calldata hookData
+    ) external override returns (bytes4) {
+        return IHooks.afterInitialize.selector;
+    }
+
+    function afterAddLiquidity(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.ModifyLiquidityParams calldata params,
+        BalanceDelta delta,
+        bytes calldata hookData
+    ) external override returns (bytes4, BalanceDelta) {
+        return (IHooks.afterAddLiquidity.selector, delta);
+    }
+
+    function afterRemoveLiquidity(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.ModifyLiquidityParams calldata params,
+        BalanceDelta delta,
+        bytes calldata hookData
+    ) external override returns (bytes4, BalanceDelta) {
+        return (IHooks.afterRemoveLiquidity.selector, delta);
+    }
+
+    function beforeInitialize(
+        address sender,
+        PoolKey calldata key,
+        uint160 sqrtPriceX96,
+        bytes calldata hookData
+    ) external override returns (bytes4) {
+        return IHooks.beforeInitialize.selector;
+    }
+}
+
+contract FeeManipulationHookImpl is FeeManipulationHook {
+    function afterInitialize(
+        address sender,
+        PoolKey calldata key,
+        uint160 sqrtPriceX96,
+        int24 tick,
+        bytes calldata hookData
+    ) external override returns (bytes4) {
+        return IHooks.afterInitialize.selector;
+    }
+
+    function afterAddLiquidity(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.ModifyLiquidityParams calldata params,
+        BalanceDelta delta,
+        bytes calldata hookData
+    ) external override returns (bytes4, BalanceDelta) {
+        return (IHooks.afterAddLiquidity.selector, delta);
+    }
+
+    function afterRemoveLiquidity(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.ModifyLiquidityParams calldata params,
+        BalanceDelta delta,
+        bytes calldata hookData
+    ) external override returns (bytes4, BalanceDelta) {
+        return (IHooks.afterRemoveLiquidity.selector, delta);
+    }
+
+    function beforeInitialize(
+        address sender,
+        PoolKey calldata key,
+        uint160 sqrtPriceX96,
+        bytes calldata hookData
+    ) external override returns (bytes4) {
+        return IHooks.beforeInitialize.selector;
+    }
+}
+
+contract SandwichAttackHookImpl is SandwichAttackHook {
+    function afterInitialize(
+        address sender,
+        PoolKey calldata key,
+        uint160 sqrtPriceX96,
+        int24 tick,
+        bytes calldata hookData
+    ) external override returns (bytes4) {
+        return IHooks.afterInitialize.selector;
+    }
+
+    function afterAddLiquidity(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.ModifyLiquidityParams calldata params,
+        BalanceDelta delta,
+        bytes calldata hookData
+    ) external override returns (bytes4, BalanceDelta) {
+        return (IHooks.afterAddLiquidity.selector, delta);
+    }
+
+    function afterRemoveLiquidity(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.ModifyLiquidityParams calldata params,
+        BalanceDelta delta,
+        bytes calldata hookData
+    ) external override returns (bytes4, BalanceDelta) {
+        return (IHooks.afterRemoveLiquidity.selector, delta);
+    }
+
+    function beforeInitialize(
+        address sender,
+        PoolKey calldata key,
+        uint160 sqrtPriceX96,
+        bytes calldata hookData
+    ) external override returns (bytes4) {
+        return IHooks.beforeInitialize.selector;
     }
 } 
